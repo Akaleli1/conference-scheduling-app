@@ -1,5 +1,5 @@
-import ConferenceList from "./components/ConferenceList";
-import Sidebar from "./components/Sidebar";
+import ConferenceList from "../components/ConferenceList";
+import Sidebar from "../components/Sidebar";
 
 export default function Page() {
   return (
@@ -13,7 +13,7 @@ export default function Page() {
         </div>
         <div className="row-span-5 grid grid-rows-8">
           <div className="row-span-1">
-            <button class="bg-primary text-white py-2 px-4 rounded-full mt-2 ml-7">
+            <button className="bg-primary text-white py-2 px-4 rounded-full mt-2 ml-7">
               Sort by Name with Quicksort
             </button>
           </div>
