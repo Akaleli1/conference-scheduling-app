@@ -1,0 +1,24 @@
+{
+    "speakers": [
+        {"name": "Neha", "expertise": "Artificial Intelligence", "availability": [10, 11, 12]},
+        {"name": "Alaz", "expertise": "Machine Learning", "availability": [12]},
+        {"name": "Sathvika", "expertise": "Artificial Intelligence", "availability": [13]},
+        {"name": "kairat", "expertise": "Data Structures", "availability": [14]}
+    ],
+    "sessions": [
+        {"name": "Artificial Intelligence"},
+        {"name": "Machine Learning"},
+        {"name": "Data Structures"}
+    ],
+    "rooms": [
+        "Amsterdam",
+        "Paris",
+        "London"
+    ],
+    "time_slots": [
+        {"start_time": 12, "end_time": 13},
+        {"start_time": 13, "end_time": 14},
+        {"start_time": 10, "end_time": 11},
+        {"start_time": 14, "end_time": 15}
+    ]
+}
