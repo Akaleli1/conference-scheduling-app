@@ -1,10 +1,12 @@
 from flask import Flask
+from flask_cors import CORS, cross_origin
 import json
 from heapq import heappop, heappush
 from collections import defaultdict, Counter
 import heapq
 
 app = Flask(__name__)
+CORS(app, support_credentials=True)
 
 def load_data(file_name):
     with open(file_name) as f:
@@ -49,10 +51,10 @@ def dijkstra_schedule(speakers, sessions, time_slots, rooms):
                     if time_slot in room_availability[room]:
                         # Schedule the session
                         schedule.append({
-                            'Speaker': speaker['name'],
-                            'Session': session_name,
-                            'Time Slot': f"{time_slot[0]} - {time_slot[1]}",
-                            'Room': room
+                            'speaker': speaker['name'],
+                            'session': session_name,
+                            'time_slot': f"{time_slot[0]} - {time_slot[1]}",
+                            'room': room
                         })
                         room_availability[room].remove(time_slot)
                         found_slot = True
@@ -147,26 +149,48 @@ def schedule_conference(speakers, sessions, time_slots, rooms):
 def show_all_speakers():
     file_name = 'conference_data.json'
     data = load_data(file_name)
-    return sorted([speaker['name'] for speaker in data['speakers']])
+    
+    speakers = data['speakers']
+    response = []
+    
+    for speaker in speakers:
+        response.append({
+            'name': speaker['name'],
+            'expertise': speaker['expertise'],
+            'availability': speaker['availability']
+        })
+    
+    sorted_response = sorted(response, key=lambda x: x['name'])
+    
+    return sorted_response
 
 
 @app.route("/sessions")
 def show_all_sessions():
     file_name = 'conference_data.json'
     data = load_data(file_name)
-    return [session['name'] for session in data['sessions']]
+    return data['sessions']
 
 @app.route("/time-slots")
 def show_time_slots():
     file_name = 'conference_data.json'
     data = load_data(file_name)
-    return [f"{time_slot['start_time']} - {time_slot['end_time']}" for time_slot in data['time_slots']]
+    return data['time_slots']
 
 @app.route("/rooms")
 def show_rooms():
     file_name = 'conference_data.json'
     data = load_data(file_name)
-    return data['rooms']
+    
+    rooms = data['rooms']
+    response = []
+    
+    for room in rooms:
+        response.append({
+            'name': room
+        })
+
+    return response
 
 @app.route("/schedule-conference")
 def schedule():
