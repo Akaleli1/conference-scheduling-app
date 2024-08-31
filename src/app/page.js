@@ -12,7 +12,7 @@ export default function Page() {
   }
   return (
     <>
-      <div className="col-span-4 grid grid-rows-7 w-screen h-screen">
+      <div className="col-span-4 grid grid-rows-7 w-screen">
         <div className="row-span-1 pl-7 pt-3">
           <h1 className="text-header text-2xl mb-2 font-bold">Discover Conferences</h1>
           {/* <p className="text-text mb-10">Find and join upcoming conferences</p> */}

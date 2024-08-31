@@ -1,7 +1,6 @@
-from flask import Flask
-from flask_cors import CORS, cross_origin
+from flask import Flask, jsonify
+from flask_cors import CORS
 import json
-from heapq import heappop, heappush
 from collections import defaultdict, Counter
 import heapq
 
@@ -12,7 +11,7 @@ def load_data(file_name):
     with open(file_name) as f:
         return json.load(f)
 
-# Quicksort for sorting speakers by name
+# Function for sorting speakers by name
 def quicksort_speakers(speakers):
     if len(speakers) <= 1:
         return speakers
@@ -22,178 +21,173 @@ def quicksort_speakers(speakers):
     greater = [x for x in speakers if x['name'] > pivot]
     return quicksort_speakers(less) + equal + quicksort_speakers(greater)
 
-# Dijkstra's algorithm for optimizing session schedules
-def dijkstra_schedule(speakers, sessions, time_slots, rooms):
-    schedule = []
-    session_map = {session['name']: session['name'] for session in sessions}
-    available_time_slots = [(slot['start_time'], slot['end_time']) for slot in time_slots]
-    
-    # Initialize room availability
-    room_availability = {room: set(available_time_slots) for room in rooms}
-    
-    # Track sessions already scheduled
-    scheduled_sessions = set()
-    
-    # Sort speakers by name before scheduling
-    speakers = quicksort_speakers(speakers)
-    
+# Function to build a bipartite graph
+def build_bipartite_graph(speakers, sessions):
+    speaker_sessions = defaultdict(list)
+    session_speakers = defaultdict(list)
+
     for speaker in speakers:
-        found_slot = False
-        session_name = speaker['expertise']
-        if session_name not in session_map:
-            print(f"Error: No session found for expertise '{session_name}'.")
-            continue
-        
-        # Try to find an available time slot and room
-        for time_slot in available_time_slots:
-            if time_slot[0] in speaker['availability']:
-                for room in rooms:
-                    if time_slot in room_availability[room]:
-                        # Schedule the session
-                        schedule.append({
-                            'speaker': speaker['name'],
-                            'session': session_name,
-                            'time_slot': f"{time_slot[0]} - {time_slot[1]}",
-                            'room': room
-                        })
-                        room_availability[room].remove(time_slot)
-                        found_slot = True
-                        break
-                if found_slot:
-                    break
-        if not found_slot:
-            print(f"Warning: Speaker {speaker['name']} could not be scheduled.")
-    
-    return schedule
+        for session in sessions:
+            if speaker['expertise'] == session['name']:
+                speaker_sessions[speaker['name']].append(session['name'])
+                session_speakers[session['name']].append(speaker['name'])
 
-# Huffman coding for compressing schedule data
-def huffman_coding(data):
-    class Node:
-        def __init__(self, char, freq):
-            self.char = char
-            self.freq = freq
-            self.left = None
-            self.right = None
+    return speaker_sessions, session_speakers
 
-        def __lt__(self, other):
-            return self.freq < other.freq
+# Matching algorithm for speakers and sessions
+def bipartite_matching(speaker_sessions, session_speakers):
+    matches = {}
+    for speaker, sessions in speaker_sessions.items():
+        if sessions:
+            matches[speaker] = sessions[0]  # Example: assign the first available session
+    return matches
 
-    def build_huffman_tree(text):
-        frequency = Counter(text)
-        priority_queue = [Node(char, freq) for char, freq in frequency.items()]
-        heapq.heapify(priority_queue)
-        
-        while len(priority_queue) > 1:
-            left = heapq.heappop(priority_queue)
-            right = heapq.heappop(priority_queue)
-            merged = Node(None, left.freq + right.freq)
-            merged.left = left
-            merged.right = right
-            heapq.heappush(priority_queue, merged)
-        
-        return priority_queue[0]
-
-    def build_code_table(root):
-        def generate_code(node, current_code=""):
-            if node is None:
-                return {}
-            if node.char is not None:
-                return {node.char: current_code}
-            codes = {}
-            codes.update(generate_code(node.left, current_code + "0"))
-            codes.update(generate_code(node.right, current_code + "1"))
-            return codes
-        
-        return generate_code(root)
-
-    def compress(text, code_table):
-        return ''.join(code_table[char] for char in text)
-    
-    def decompress(encoded_text, code_table):
-        reverse_code_table = {v: k for k, v in code_table.items()}
-        current_code = ""
-        decoded_text = []
-        for bit in encoded_text:
-            current_code += bit
-            if current_code in reverse_code_table:
-                decoded_text.append(reverse_code_table[current_code])
-                current_code = ""
-        return ''.join(decoded_text)
-    
-    root = build_huffman_tree(data)
-    code_table = build_code_table(root)
-    encoded_text = compress(data, code_table)
-    decoded_text = decompress(encoded_text, code_table)
-    
-    return encoded_text, code_table, decoded_text
-
-
-# Schedule conference function with Dijkstra’s algorithm integration
+# Main function to schedule the conference
 def schedule_conference(speakers, sessions, time_slots, rooms):
-    # Sort speakers before scheduling
-    speakers = quicksort_speakers(speakers)
-    schedule = dijkstra_schedule(speakers, sessions, time_slots, rooms)
+    if not (isinstance(speakers, list) and isinstance(sessions, list) and
+            isinstance(time_slots, dict) and isinstance(rooms, list)):
+        raise ValueError("Invalid data format. All inputs should be lists.")
     
-    # Convert the schedule to a string for Huffman coding
-    schedule_str = json.dumps(schedule)
-    encoded_schedule, code_table, decoded_schedule = huffman_coding(schedule_str)
+    speaker_sessions, session_speakers = build_bipartite_graph(speakers, sessions)
+    matches = bipartite_matching(speaker_sessions, session_speakers)
     
-   # print("Huffman Encoded Schedule:")
-   # print(encoded_schedule)
-    #print("Huffman Code Table:")
-    #print(code_table)
+    schedule = []
+    # Initialize room availability with time slots per day
+    room_availability = {room['name']: {day: slots.copy() for day, slots in time_slots.items()} for room in rooms}
+
+    # Assign sessions to speakers and rooms
+    for speaker, session in matches.items():
+        assigned = False
+        speaker_availability = [a for s in speakers if s['name'] == speaker for a in s['availability']]
+        
+        for available_slot in speaker_availability:
+            day = available_slot['day']
+            time_slot = {'start_time': available_slot['start_time'], 'end_time': available_slot['end_time']}
+            
+            # Find an available room for the speaker's time slot
+            for room in rooms:
+                if day in room_availability[room['name']] and time_slot in room_availability[room['name']][day]:
+                    schedule.append({
+                        'Speaker': speaker,
+                        'Session': session,
+                        'Day': day,
+                        'Time Slot': f"{time_slot['start_time']} - {time_slot['end_time']}",
+                        'Room': room['name']
+                    })
+                    room_availability[room['name']][day].remove(time_slot)
+                    assigned = True
+                    break
+            
+            if assigned:
+                break
+
+    # Handle unmatched speakers
+    unmatched_speakers = set(speaker_sessions.keys()) - set(matches.keys())
+    unmatched_sessions = set(session_speakers.keys()) - set(matches.values())
     
-    return schedule
+    for speaker in unmatched_speakers:
+        speaker_availability = [a for s in speakers if s['name'] == speaker for a in s['availability']]
+        for available_slot in speaker_availability:
+            day = available_slot['day']
+            time_slot = {'start_time': available_slot['start_time'], 'end_time': available_slot['end_time']}
+            for room in rooms:
+                if day in room_availability[room['name']] and time_slot in room_availability[room['name']][day]:
+                    if unmatched_sessions:
+                        session = unmatched_sessions.pop()
+                        schedule.append({
+                            'Speaker': speaker,
+                            'Session': session,
+                            'Day': day,
+                            'Time Slot': f"{time_slot['start_time']} - {time_slot['end_time']}",
+                            'Room': room['name']
+                        })
+                        room_availability[room['name']][day].remove(time_slot)
+                        break
+    
+    # Sort the schedule by Speaker's name for consistency
+    sorted_schedule = sorted(schedule, key=lambda x: x['Speaker'])
+    
+    return sorted_schedule
+
+#  Huffman coding implementation
+
+def huffman_encoding(data):
+    frequency = Counter(data)
+    heap = [[weight, [symbol, ""]] for symbol, weight in frequency.items()]
+    heapq.heapify(heap)
+    while len(heap) > 1:
+        lo = heapq.heappop(heap)
+        hi = heapq.heappop(heap)
+        for pair in lo[1:]:
+            pair[1] = '0' + pair[1]
+        for pair in hi[1:]:
+            pair[1] = '1' + pair[1]
+        heapq.heappush(heap, [lo[0] + hi[0]] + lo[1:] + hi[1:])
+    huffman_tree = sorted(heap[0][1:], key=lambda p: (len(p[1]), p))
+    huffman_dict = {symbol: code for symbol, code in huffman_tree}
+    encoded_data = ''.join(huffman_dict[symbol] for symbol in data)
+    return encoded_data, huffman_dict
+
+def huffman_decoding(encoded_data, huffman_dict):
+    reverse_dict = {code: symbol for symbol, code in huffman_dict.items()}
+    current_code = ""
+    decoded_data = ""
+    for bit in encoded_data:
+        current_code += bit
+        if current_code in reverse_dict:
+            decoded_data += reverse_dict[current_code]
+            current_code = ""
+    return decoded_data
 
 @app.route("/speakers")
 def show_all_speakers():
     file_name = 'conference_data.json'
     data = load_data(file_name)
-    
     speakers = data['speakers']
-    response = []
-    
-    for speaker in speakers:
-        response.append({
-            'name': speaker['name'],
-            'expertise': speaker['expertise'],
-            'availability': speaker['availability']
-        })
-    
-    sorted_response = sorted(response, key=lambda x: x['name'])
-    
-    return sorted_response
-
+    sorted_names = sorted([speaker['name'] for speaker in speakers])
+    return jsonify(sorted_names)
 
 @app.route("/sessions")
 def show_all_sessions():
     file_name = 'conference_data.json'
     data = load_data(file_name)
-    return data['sessions']
+    return jsonify(data['sessions'])
 
 @app.route("/time-slots")
 def show_time_slots():
     file_name = 'conference_data.json'
     data = load_data(file_name)
-    return data['time_slots']
+    response = {"time_slots": data.get('time_slots', {})}
+    return jsonify(response)
 
 @app.route("/rooms")
 def show_rooms():
     file_name = 'conference_data.json'
     data = load_data(file_name)
-    
-    rooms = data['rooms']
-    response = []
-    
-    for room in rooms:
-        response.append({
-            'name': room
-        })
-
-    return response
+    rooms = data.get('rooms', [])
+    return jsonify(rooms)
 
 @app.route("/schedule-conference")
 def schedule():
-    file_name = 'conference_data.json'
-    data = load_data(file_name)
-    return schedule_conference(data['speakers'], data['sessions'], data['time_slots'], data['rooms'])
+    try:
+        file_name = 'conference_data.json'
+        data = load_data(file_name)
+        schedule_data = schedule_conference(data['speakers'], data['sessions'], data['time_slots'], data['rooms'])
+        # Encode the schedule data
+        encoded_schedule, huffman_tree = huffman_encoding(json.dumps(schedule_data))
+        
+        # Decode the schedule data 
+        decodedData = huffman_decoding(encoded_schedule, huffman_tree)
+
+        # Decoded data is string right now, so it should be json
+        decodedData = json.loads(decodedData)
+        
+        return jsonify({
+            'compressedData': encoded_schedule,
+            'huffmanTree': huffman_tree,
+            'decodedData': decodedData
+        })
+    except ValueError as ve:
+        return jsonify({'error': str(ve)}), 400
+    except Exception as e:
+        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500

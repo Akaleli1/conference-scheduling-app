@@ -1,24 +1,68 @@
 {
-    "speakers": [
-        {"name": "Neha", "expertise": "Artificial Intelligence", "availability": [10, 11, 12]},
-        {"name": "Alaz", "expertise": "Machine Learning", "availability": [12]},
-        {"name": "Sathvika", "expertise": "Artificial Intelligence", "availability": [13]},
-        {"name": "kairat", "expertise": "Data Structures", "availability": [14]}
-    ],
-    "sessions": [
-        {"name": "Artificial Intelligence"},
-        {"name": "Machine Learning"},
-        {"name": "Data Structures"}
+    "days": [
+        {"day": "Monday"},
+        {"day": "Tuesday"},
+        {"day": "Wednesday"}
     ],
     "rooms": [
-        "Amsterdam",
-        "Paris",
-        "London"
+        {"name": "Amsterdam", "capacity": 50},
+        {"name": "Paris", "capacity": 30},
+        {"name": "London", "capacity": 40}
     ],
-    "time_slots": [
-        {"start_time": 12, "end_time": 13},
-        {"start_time": 13, "end_time": 14},
-        {"start_time": 10, "end_time": 11},
-        {"start_time": 14, "end_time": 15}
+    "time_slots": {
+        "Monday": [
+            {"start_time": "10:00", "end_time": "11:00"},
+            {"start_time": "11:00", "end_time": "12:00"},
+            {"start_time": "12:00", "end_time": "13:00"}
+        ],
+        "Tuesday": [
+            {"start_time": "10:00", "end_time": "11:00"},
+            {"start_time": "11:00", "end_time": "12:00"},
+            {"start_time": "13:00", "end_time": "14:00"},
+            {"start_time": "14:00", "end_time": "15:00"}
+        ],
+        "Wednesday": [
+            {"start_time": "10:00", "end_time": "11:00"},
+            {"start_time": "11:00", "end_time": "12:00"},
+            {"start_time": "12:00", "end_time": "13:00"},
+            {"start_time": "14:00", "end_time": "15:00"}
+        ]
+    },
+    "sessions": [
+        {"name": "Artificial Intelligence", "duration": "1 hour"},
+        {"name": "Machine Learning", "duration": "1 hour"},
+        {"name": "Data Structures", "duration": "1 hour"}
+    ],
+    "speakers": [
+        {
+            "name": "Neha",
+            "expertise": "Artificial Intelligence",
+            "availability": [
+                {"day": "Monday", "start_time": "12:00", "end_time": "13:00"},
+                {"day": "Tuesday", "start_time": "11:00", "end_time": "12:00"},
+                {"day": "Wednesday", "start_time": "12:00", "end_time": "13:00"}
+            ]
+        },
+        {
+            "name": "Alaz",
+            "expertise": "Machine Learning",
+            "availability": [
+                {"day": "Monday", "start_time": "12:00", "end_time": "13:00"}
+            ]
+        },
+        {
+            "name": "Sathvika",
+            "expertise": "Artificial Intelligence",
+            "availability": [
+                {"day": "Tuesday", "start_time": "13:00", "end_time": "14:00"}
+            ]
+        },
+        {
+            "name": "Kairat",
+            "expertise": "Data Structures",
+            "availability": [
+                {"day": "Monday", "start_time": "12:00", "end_time": "13:00"}
+            ]
+        }
     ]
 }
